@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: irfeyal-asistencia
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/irfeyal_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=your_password
+      - JWT_SECRET=IRFEYAL_SECRET_KEY_2024_CHANGE_IN_PRODUCTION_256_BITS
+      - JWT_EXPIRATION=86400000
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:14
+    container_name: irfeyal-postgres
+    environment:
+      - POSTGRES_DB=irfeyal_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=your_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:

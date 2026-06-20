@@ -8,9 +8,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,6 +23,8 @@ import org.springframework.util.ResourceUtils;
 
 import com.irfeyal.asistencia.dao.IAsistenciaDao;
 import com.irfeyal.asistencia.dao.IClaseDao;
+import com.irfeyal.asistencia.dto.AsistenciaDTO;
+import com.irfeyal.asistencia.mapper.AsistenciaMapper;
 import com.irfeyal.asistencia.interfaces.IAsistenciaService;
 import com.irfeyal.asistencia.modelo.Asistencia;
 import com.irfeyal.matricula.dao.IEstudianteDao;
@@ -47,6 +52,12 @@ import net.sf.jasperreports.engine.JasperReport;
 import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import net.sf.jasperreports.engine.util.JRLoader;
 
+/**
+ * Implementación del servicio de Asistencia.
+ * Usa AsistenciaMapper para convertir entre entidad y DTO.
+ * Los reportes PDF usan JasperReports directamente con entidades
+ * (no DTOs) porque requieren acceso a relaciones completas.
+ */
 @Service
 public class AsistenciaServiceImpl implements IAsistenciaService {
 
@@ -57,187 +68,192 @@ public class AsistenciaServiceImpl implements IAsistenciaService {
   private RolUsuarioDAO rolUsuarioDAO;
 
   @Autowired
-  private IAsistenciaDao asistenciadao;
+  private IAsistenciaDao asistenciaDao;
 
   @Autowired
-  private PersonaDAO personadao;
+  private PersonaDAO personaDao;
 
   @Autowired
-  private IEstudianteDao estudiantedao;
+  private IEstudianteDao estudianteDao;
 
   @Autowired
-  private IClaseDao clasedao;
+  private IClaseDao claseDao;
 
   @Autowired
-  private ParaleloRespository paralelo;
+  private ParaleloRespository paraleloRepository;
 
   @Autowired
-  private PeriodoRepository periodo;
+  private PeriodoRepository periodoRepository;
 
   @Autowired
-  private ModalidadRepository modalidad;
+  private ModalidadRepository modalidadRepository;
 
   @Autowired
-  private AsignaturaRepository asignatura;
+  private AsignaturaRepository asignaturaRepository;
 
   @Autowired
-  private CursoRepository curso;
+  private CursoRepository cursoRepository;
+
+  @Autowired
+  private AsistenciaMapper asistenciaMapper;
 
   @Override
-  public List<Asistencia> findAll() {
-    return asistenciadao.findAll();
+  public List<AsistenciaDTO> findAll() {
+    return asistenciaDao.findAll().stream()
+        .map(asistenciaMapper::toDto)
+        .collect(Collectors.toList());
   }
 
   @Override
-  public Asistencia findById(Long id) {
-    return asistenciadao.findById(id).orElse(null);
+  public Page<AsistenciaDTO> findAll(Pageable pageable) {
+    return asistenciaDao.findAll(pageable)
+        .map(asistenciaMapper::toDto);
   }
 
   @Override
-  public Asistencia save(Asistencia asistencia) {
-    return asistenciadao.save(asistencia);
+  public AsistenciaDTO findById(Long id) {
+    return asistenciaDao.findById(id)
+        .map(asistenciaMapper::toDto)
+        .orElse(null);
+  }
+
+  @Override
+  public AsistenciaDTO save(AsistenciaDTO asistenciaDTO) {
+    Asistencia entity = asistenciaMapper.toEntity(asistenciaDTO);
+    Asistencia saved = asistenciaDao.save(entity);
+    return asistenciaMapper.toDto(saved);
   }
 
   @Override
   public void delete(Long id) {
-    asistenciadao.deleteById(id);
+    asistenciaDao.deleteById(id);
   }
 
   @Override
-  public List<Persona> buscarcurso(Long id) {
-    return personadao.buscarcurso(id);
+  public List<Persona> buscarCurso(Long id) {
+    return personaDao.buscarcurso(id);
   }
 
   @Override
-  public List<Estudiante> buscarcursomodalidad(Long idMod, Long idPeriodo, Long idParalelo,
+  public List<Estudiante> buscarCursoModalidad(Long idMod, Long idPeriodo, Long idParalelo,
       Long idAsignatura, Long idCurso) {
-    return estudiantedao.buscarcursotodofil(idMod, idPeriodo, idParalelo, idAsignatura, idCurso);
+    return estudianteDao.buscarcursotodofil(idMod, idPeriodo, idParalelo, idAsignatura, idCurso);
   }
 
   @Override
-  public Estudiante buscarceduestudiante(String cedula) {
-    return estudiantedao.buscarcedulaestudiante(cedula);
-  }
-
-  @Override
-  public List<Modalidad> modalidaddocente(Integer idDocente) {
-    return null;
+  public Estudiante buscarCedulaEstudiante(String cedula) {
+    return estudianteDao.buscarcedulaestudiante(cedula);
   }
 
   @Override
   public List<Asignatura> findAllAsignaturas() {
-    return asignatura.findAll();
+    return asignaturaRepository.findAll();
   }
 
   @Override
   public List<Paralelo> findAllParalelo() {
-    return paralelo.findAll();
+    return paraleloRepository.findAll();
   }
 
   @Override
   public List<Modalidad> findAllModalidad() {
-    return modalidad.findAll();
+    return modalidadRepository.findAll();
   }
 
   @Override
-  public List<Periodo> findAllperio() {
-    return periodo.findAll();
+  public List<Periodo> findAllPeriodo() {
+    return periodoRepository.findAll();
   }
 
   @Override
-  public List<Curso> findAllcurso() {
-    return curso.findAll();
+  public List<Curso> findAllCurso() {
+    return cursoRepository.findAll();
   }
 
   @Override
-  public List<Asistencia> burcarasistencia(Long idMod, Long idPeriodo, Long idParalelo,
+  public List<AsistenciaDTO> buscarAsistencia(Long idMod, Long idPeriodo, Long idParalelo,
       Long idAsignatura, Long idCurso, Date fecha, Long docente) {
-    return asistenciadao.actualizarfiltros(idMod, idPeriodo, idParalelo,
-        idAsignatura, idCurso, fecha, docente);
+    return asistenciaDao.actualizarfiltros(idMod, idPeriodo, idParalelo,
+        idAsignatura, idCurso, fecha, docente).stream()
+        .map(asistenciaMapper::toDto)
+        .collect(Collectors.toList());
   }
 
   @Override
-  public List<Estudiante> mostrarinformacion(long id) {
-    return estudiantedao.findestudianteid(id);
+  public List<Estudiante> mostrarInformacion(long id) {
+    return estudianteDao.findestudianteid(id);
   }
 
   @Override
-  public List<Periodo> listarpaeriodo(Long empleado) {
-    return periodo.listarperiodoasistencia(empleado);
+  public List<Periodo> listarPeriodo(Long empleado) {
+    return periodoRepository.listarperiodoasistencia(empleado);
   }
 
   @Override
-  public List<Modalidad> listarmodalidad(Long empleado, Long idPeriodo) {
-    return modalidad.listarmodalidadasistencia(empleado, idPeriodo);
+  public List<Modalidad> listarModalidad(Long empleado, Long idPeriodo) {
+    return modalidadRepository.listarmodalidadasistencia(empleado, idPeriodo);
   }
 
   @Override
-  public List<Curso> listarcurso(Long empleado, Long periodo, Long idModalidad) {
-    return curso.listarcursoasistencia(empleado, periodo, idModalidad);
+  public List<Curso> listarCurso(Long empleado, Long periodo, Long idModalidad) {
+    return cursoRepository.listarcursoasistencia(empleado, periodo, idModalidad);
   }
 
   @Override
-  public List<Paralelo> listarparalelo(Long empleado, Long periodo, Long modalidad, Long idCurso) {
-    return paralelo.listarparaleloasistencia(empleado, periodo, modalidad, idCurso);
+  public List<Paralelo> listarParalelo(Long empleado, Long periodo, Long modalidad, Long idCurso) {
+    return paraleloRepository.listarparaleloasistencia(empleado, periodo, modalidad, idCurso);
   }
 
   @Override
-  public List<Asignatura> listarasignatura(Long empleado, Long idPeriodo, Long modalidad,
+  public List<Asignatura> listarAsignatura(Long empleado, Long idPeriodo, Long modalidad,
       Long idCurso, Long idParalelo) {
-    return asignatura.listarasignaturaasistencia(empleado, idPeriodo, modalidad, idCurso, idParalelo);
-  }
-
-  @Override
-  public List<Asistencia> actualizarfiltros(Long idMod, Long idPeriodo, Long idParalelo,
-      Long idAsignatura, Long idCurso, Date fecha, Long docente) {
-    return asistenciadao.actualizarfiltros(idMod, idPeriodo, idParalelo,
-        idAsignatura, idCurso, fecha, docente);
+    return asignaturaRepository.listarasignaturaasistencia(empleado, idPeriodo, modalidad, idCurso, idParalelo);
   }
 
   @Override
   public ResponseEntity<ByteArrayResource> exportInvoice(Long idEstudiante, Long idDocente,
       Long idAsignatura, Long usuario, Date fechaInicio, Date fechaFin) {
     try {
-      Integer numfalta = 0;
-      Integer numfaltaAdmin = 0;
+      Integer numFaltas = 0;
+      Integer numFaltasAdmin = 0;
 
-      List<Asistencia> asispedf = this.asistenciadao.obtenerIdEstudiante(
+      List<Asistencia> asistenciasDocente = this.asistenciaDao.obtenerIdEstudiante(
           idEstudiante, idDocente, idAsignatura, fechaInicio, fechaFin);
-      List<Asistencia> asispedfAdmin = this.asistenciadao.obtenerIdEstudianteAdmin(
+      List<Asistencia> asistenciasAdmin = this.asistenciaDao.obtenerIdEstudianteAdmin(
           idEstudiante, idAsignatura, fechaInicio, fechaFin);
-      Estudiante estudiantedaoa = this.estudiantedao.findestudianteidpdf(idEstudiante);
+      Estudiante estudiante = this.estudianteDao.findestudianteidpdf(idEstudiante);
 
       final File file = ResourceUtils.getFile("src/main/resources/PDF/reportesasistencias.jasper");
       final File imgLogo = ResourceUtils.getFile("src/main/resources/logo.png");
       final JasperReport report = (JasperReport) JRLoader.loadObject(file);
 
-      numfalta = asispedf.size();
-      numfaltaAdmin = asispedfAdmin.size();
+      numFaltas = asistenciasDocente.size();
+      numFaltasAdmin = asistenciasAdmin.size();
 
       final Map<String, Object> parameters = new HashMap<>();
       parameters.put("id_estudiante", idEstudiante);
       parameters.put("tutor",
           empleadoDAO.findById(idDocente).get().getPersona().getNombre() + "  "
               + empleadoDAO.findById(idDocente).get().getPersona().getApellido());
-      parameters.put("persoNom", estudiantedaoa.getIdPersona().getNombre());
-      parameters.put("persoApe", estudiantedaoa.getIdPersona().getApellido());
-      parameters.put("cedula", estudiantedaoa.getIdPersona().getCedula());
+      parameters.put("persoNom", estudiante.getIdPersona().getNombre());
+      parameters.put("persoApe", estudiante.getIdPersona().getApellido());
+      parameters.put("cedula", estudiante.getIdPersona().getCedula());
 
       List<String> cargos = rolUsuarioDAO.validacionadmin(usuario);
-      boolean validadmin = false;
+      boolean esAdmin = false;
 
       for (int i = 0; i < cargos.size(); i++) {
         if (cargos.get(i).equalsIgnoreCase("Administrador")) {
-          validadmin = true;
-          parameters.put("numfalta", numfaltaAdmin);
+          esAdmin = true;
+          parameters.put("numfalta", numFaltasAdmin);
           parameters.put("ds", new JRBeanCollectionDataSource(
-              (Collection<?>) this.clasedao.mostrarfechasidpdfadmin(
+              (Collection<?>) this.claseDao.mostrarfechasidpdfadmin(
                   idEstudiante, idAsignatura, fechaInicio, fechaFin)));
         } else {
-          if (i == cargos.size() - 1 && !validadmin) {
-            parameters.put("numfalta", numfalta);
+          if (i == cargos.size() - 1 && !esAdmin) {
+            parameters.put("numfalta", numFaltas);
             parameters.put("ds", new JRBeanCollectionDataSource(
-                (Collection<?>) this.clasedao.mostrarfechasidpdf(
+                (Collection<?>) this.claseDao.mostrarfechasidpdf(
                     idEstudiante, idDocente, idAsignatura, fechaInicio, fechaFin)));
           }
         }
@@ -248,11 +264,11 @@ public class AsistenciaServiceImpl implements IAsistenciaService {
       JasperPrint jPrint = JasperFillManager.fillReport(report, parameters, new JREmptyDataSource());
       byte[] reporte = JasperExportManager.exportReportToPdf(jPrint);
 
-      String sdf = (new SimpleDateFormat("dd/MM/yyyy")).format(new Date());
-      String filename = "InvoicePDF:" + idEstudiante + "generateDate:" + sdf + ".pdf";
+      String fechaFormateada = (new SimpleDateFormat("dd/MM/yyyy")).format(new Date());
+      String fileName = "InvoicePDF:" + idEstudiante + "generateDate:" + fechaFormateada + ".pdf";
 
       ContentDisposition contentDisposition = ContentDisposition.builder("attachment")
-          .filename(filename).build();
+          .filename(fileName).build();
       HttpHeaders headers = new HttpHeaders();
       headers.setContentDisposition(contentDisposition);
 
@@ -263,13 +279,12 @@ public class AsistenciaServiceImpl implements IAsistenciaService {
           .body(new ByteArrayResource(reporte));
 
     } catch (Exception e) {
-      e.printStackTrace();
-      return null;
+      throw new RuntimeException("Error al generar reporte PDF de asistencia", e);
     }
   }
 
   @Override
-  public ResponseEntity<ByteArrayResource> exportInvoicepdfcursos(Long idMod, Long idPeriodo,
+  public ResponseEntity<ByteArrayResource> exportInvoiceCurso(Long idMod, Long idPeriodo,
       Long idParalelo, Long idAsignatura, Long idCurso, Long docente, Long usuario,
       Date fechaInicio, Date fechaFin) {
     try {
@@ -278,31 +293,31 @@ public class AsistenciaServiceImpl implements IAsistenciaService {
       final JasperReport report = (JasperReport) JRLoader.loadObject(file);
 
       final Map<String, Object> parameters = new HashMap<>();
-      String periodocripcion = periodo.getById(idPeriodo).getMalla().getDescripcion()
-          + " " + periodo.getById(idPeriodo).getAnoInicio()
-          + "-" + periodo.getById(idPeriodo).getAnoFin();
+      String periodoDescripcion = periodoRepository.getById(idPeriodo).getMalla().getDescripcion()
+          + " " + periodoRepository.getById(idPeriodo).getAnoInicio()
+          + "-" + periodoRepository.getById(idPeriodo).getAnoFin();
 
-      parameters.put("desCurso", curso.getById(idCurso).getDescripcion());
-      parameters.put("desParalelo", paralelo.getById(idParalelo).getDescripcion());
-      parameters.put("desPeriodo", periodocripcion);
+      parameters.put("desCurso", cursoRepository.getById(idCurso).getDescripcion());
+      parameters.put("desParalelo", paraleloRepository.getById(idParalelo).getDescripcion());
+      parameters.put("desPeriodo", periodoDescripcion);
       parameters.put("persoNom",
           empleadoDAO.findById(docente).get().getPersona().getNombre() + "  "
               + empleadoDAO.findById(docente).get().getPersona().getApellido());
-      parameters.put("desModalidad", modalidad.getById(idMod).getDescripcion());
+      parameters.put("desModalidad", modalidadRepository.getById(idMod).getDescripcion());
 
       List<String> cargos = rolUsuarioDAO.validacionadmin(usuario);
-      boolean validadmincurso = false;
+      boolean esAdminCurso = false;
 
       for (int i = 0; i < cargos.size(); i++) {
         if (cargos.get(i).equalsIgnoreCase("Administrador")) {
-          validadmincurso = true;
+          esAdminCurso = true;
           parameters.put("ds", new JRBeanCollectionDataSource(
-              (Collection<?>) this.asistenciadao.sistenciapdftutor(
+              (Collection<?>) this.asistenciaDao.sistenciapdftutor(
                   idMod, idPeriodo, idParalelo, idCurso, fechaInicio, fechaFin)));
         } else {
-          if (i == cargos.size() - 1 && !validadmincurso) {
+          if (i == cargos.size() - 1 && !esAdminCurso) {
             parameters.put("ds", new JRBeanCollectionDataSource(
-                (Collection<?>) this.asistenciadao.sistenciapdf(
+                (Collection<?>) this.asistenciaDao.sistenciapdf(
                     idMod, idPeriodo, idParalelo, idCurso, docente, fechaInicio, fechaFin)));
           }
         }
@@ -313,11 +328,11 @@ public class AsistenciaServiceImpl implements IAsistenciaService {
       JasperPrint jPrint = JasperFillManager.fillReport(report, parameters, new JREmptyDataSource());
       byte[] reporte = JasperExportManager.exportReportToPdf(jPrint);
 
-      String sdf = (new SimpleDateFormat("dd/MM/yyyy")).format(new Date());
-      String filename = "InvoicePDF:" + idAsignatura + "generateDate:" + sdf + ".pdf";
+      String fechaFormateada = (new SimpleDateFormat("dd/MM/yyyy")).format(new Date());
+      String fileName = "InvoicePDF:" + idAsignatura + "generateDate:" + fechaFormateada + ".pdf";
 
       ContentDisposition contentDisposition = ContentDisposition.builder("attachment")
-          .filename(filename).build();
+          .filename(fileName).build();
       HttpHeaders headers = new HttpHeaders();
       headers.setContentDisposition(contentDisposition);
 
@@ -328,8 +343,7 @@ public class AsistenciaServiceImpl implements IAsistenciaService {
           .body(new ByteArrayResource(reporte));
 
     } catch (Exception e) {
-      e.printStackTrace();
-      return null;
+      throw new RuntimeException("Error al generar reporte PDF de asistencia por curso", e);
     }
   }
 
