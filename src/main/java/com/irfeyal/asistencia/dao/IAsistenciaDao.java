@@ -10,17 +10,8 @@ import com.irfeyal.asistencia.modelo.Asistencia;
 
 public interface IAsistenciaDao extends JpaRepository<Asistencia, Long> {
 
-  @Query(value = "SELECT * "
-      + "FROM Asistencia asis "
-      + "join clase cls on cls.id_clase = asis.id_clase "
-      + "WHERE cls.id_modalidad_id_modalidad=?1 and cls.id_periodo_id_periodo=?2 "
-      + "and cls.id_paralelo=?3 and cls.id_asignatura=?4 and cls.id_curso=?5 and cls.fec_clase=?6",
-      nativeQuery = true)
-  List<Asistencia> buscarasistencia(Long idMod, Long idPeriodo, Long idParalelo,
-      Long idAsignatura, Long idCurso, Date fecha);
-
   @Query(value = "SELECT * FROM asistencia asis join clase cls on cls.id_clase= asis.id_clase where "
-      + "cls.id_modalidad_id_modalidad=?1 and cls.id_periodo_id_periodo=?2 "
+      + "cls.id_modalidad=?1 and cls.id_periodo=?2 "
       + "and cls.id_paralelo=?3 and cls.id_asignatura=?4 and cls.id_curso=?5 "
       + "and cls.fec_clase=?6 and cls.id_docente=?7", nativeQuery = true)
   List<Asistencia> actualizarfiltros(Long idMod, Long idPeriodo, Long idParalelo,
@@ -47,7 +38,7 @@ public interface IAsistenciaDao extends JpaRepository<Asistencia, Long> {
   @Query(value = "SELECT * "
       + "FROM Asistencia asis "
       + "join clase cls on cls.id_clase = asis.id_clase "
-      + "WHERE cls.id_modalidad_id_modalidad=?1 and cls.id_periodo_id_periodo=?2 "
+      + "WHERE cls.id_modalidad=?1 and cls.id_periodo=?2 "
       + "and cls.id_paralelo=?3 and cls.id_curso=?4 and cls.id_docente=?5 "
       + "and asis.estado_asis=true and cls.fec_clase>=?6 and cls.fec_clase<=?7",
       nativeQuery = true)
@@ -57,7 +48,7 @@ public interface IAsistenciaDao extends JpaRepository<Asistencia, Long> {
   @Query(value = "SELECT * "
       + "FROM Asistencia asis "
       + "join clase cls on cls.id_clase = asis.id_clase "
-      + "WHERE cls.id_modalidad_id_modalidad=?1 and cls.id_periodo_id_periodo=?2 "
+      + "WHERE cls.id_modalidad=?1 and cls.id_periodo=?2 "
       + "and cls.id_paralelo=?3 and cls.id_curso=?4 "
       + "and asis.estado_asis=true and cls.fec_clase>=?5 and cls.fec_clase<=?6",
       nativeQuery = true)

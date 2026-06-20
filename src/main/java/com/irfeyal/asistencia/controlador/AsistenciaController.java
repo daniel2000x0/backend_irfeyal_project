@@ -2,8 +2,13 @@ package com.irfeyal.asistencia.controlador;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
 import java.util.List;
+
+import org.springframework.format.annotation.DateTimeFormat;
 
 import javax.validation.Valid;
 
@@ -211,16 +216,20 @@ public class AsistenciaController {
     public ResponseEntity<ApiResponse<List<AsistenciaDTO>>> buscarActualizar(@PathVariable Long idMod,
             @PathVariable Long idPeriodo, @PathVariable Long idParalelo,
             @PathVariable Long idAsignatura, @PathVariable Long idCurso,
-            @PathVariable String fecha, @PathVariable Long docente) throws ParseException {
-        SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd");
-        Date auxFecha = formato.parse(fecha);
-        List<AsistenciaDTO> result = asistenciaService.buscarAsistencia(
-            idMod, idPeriodo, idParalelo, idAsignatura, idCurso, auxFecha, docente);
-        return ResponseEntity.ok(ApiResponse.ok(result));
+            @PathVariable String fecha, @PathVariable Long docente) {
+        try {
+            SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd");
+            Date auxFecha = formato.parse(fecha);
+            List<AsistenciaDTO> result = asistenciaService.buscarAsistencia(
+                idMod, idPeriodo, idParalelo, idAsignatura, idCurso, auxFecha, docente);
+            return ResponseEntity.ok(ApiResponse.ok(result));
+        } catch (ParseException e) {
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.badRequest(List.of("Formato de fecha inválido. Use yyyy-MM-dd")));
+        }
     }
 
     @PutMapping("/updateasistencia/{id}")
-    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Actualizar estado de una asistencia")
     public ResponseEntity<ApiResponse<AsistenciaDTO>> update(
             @Valid @RequestBody AsistenciaUpdateDTO updateDto, @PathVariable Long id) {
@@ -232,17 +241,16 @@ public class AsistenciaController {
         }
         asistenciaActual.setEstadoAsis(updateDto.getEstadoAsis());
         AsistenciaDTO actualizada = asistenciaService.save(asistenciaActual);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(actualizada));
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(actualizada));
     }
 
     @PutMapping("/claseactualizar/{id}")
-    @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Actualizar una clase")
     public ResponseEntity<ApiResponse<ClaseDTO>> actualizarClase(@RequestBody ClaseDTO claseDTO,
             @PathVariable Long id) {
         claseDTO.setIdClase(id);
         ClaseDTO actualizada = claseService.save(claseDTO);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.created(actualizada));
+        return ResponseEntity.status(HttpStatus.OK).body(ApiResponse.ok(actualizada));
     }
 
     @GetMapping("/mostrarfechasdefaltas/{ides}/{iddo}/{idasig}/{idcur}/{idpar}/{idmod}/{idperi}")
@@ -259,12 +267,17 @@ public class AsistenciaController {
     public ResponseEntity<ApiResponse<List<AsistenciaDTO>>> buscarAsistencia(@PathVariable Long idMod,
             @PathVariable Long idPeriodo, @PathVariable Long idParalelo,
             @PathVariable Long idAsignatura, @PathVariable Long idCurso,
-            @PathVariable String fecha, @PathVariable Long docente) throws ParseException {
-        SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd");
-        Date auxFecha = formato.parse(fecha);
-        List<AsistenciaDTO> result = asistenciaService.buscarAsistencia(
-            idMod, idPeriodo, idParalelo, idAsignatura, idCurso, auxFecha, docente);
-        return ResponseEntity.ok(ApiResponse.ok(result));
+            @PathVariable String fecha, @PathVariable Long docente) {
+        try {
+            SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd");
+            Date auxFecha = formato.parse(fecha);
+            List<AsistenciaDTO> result = asistenciaService.buscarAsistencia(
+                idMod, idPeriodo, idParalelo, idAsignatura, idCurso, auxFecha, docente);
+            return ResponseEntity.ok(ApiResponse.ok(result));
+        } catch (ParseException e) {
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.badRequest(List.of("Formato de fecha inválido. Use yyyy-MM-dd")));
+        }
     }
 
     @GetMapping("/validarclass/{idDoc}/{idPeriodo}/{idMod}/{idCurso}/{idParalelo}/{idAsignatura}/{fechac}")
@@ -272,19 +285,25 @@ public class AsistenciaController {
     public ResponseEntity<ApiResponse<Long>> validarClass(@PathVariable Integer idDoc,
             @PathVariable Integer idPeriodo, @PathVariable Integer idMod,
             @PathVariable Integer idCurso, @PathVariable Integer idParalelo,
-            @PathVariable Integer idAsignatura, @PathVariable String fechac) throws ParseException {
-        SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd");
-        Date auxFecha = formato.parse(fechac);
-        Long count = claseService.validarclass(idDoc, idPeriodo, idMod, idCurso,
-            idParalelo, idAsignatura, auxFecha);
-        return ResponseEntity.ok(ApiResponse.ok(count));
+            @PathVariable Integer idAsignatura, @PathVariable String fechac) {
+        try {
+            SimpleDateFormat formato = new SimpleDateFormat("yyyy-MM-dd");
+            Date auxFecha = formato.parse(fechac);
+            Long count = claseService.validarclass(idDoc, idPeriodo, idMod, idCurso,
+                idParalelo, idAsignatura, auxFecha);
+            return ResponseEntity.ok(ApiResponse.ok(count));
+        } catch (ParseException e) {
+            return ResponseEntity.badRequest()
+                .body(ApiResponse.badRequest(List.of("Formato de fecha inválido. Use yyyy-MM-dd")));
+        }
     }
 
     @GetMapping("/exportInvoice/{idEstudiante}/{idDocente}/{idAsignatura}/{usuario}/{fechaInicio}/{fechaFin}")
     @Operation(summary = "Exportar reporte PDF de asistencia por estudiante")
     public ResponseEntity<ByteArrayResource> exportInvoice(@PathVariable Long idEstudiante,
             @PathVariable Long idDocente, @PathVariable Long idAsignatura, @PathVariable Long usuario,
-            @PathVariable Date fechaInicio, @PathVariable Date fechaFin) {
+            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") Date fechaInicio,
+            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") Date fechaFin) {
         return asistenciaService.exportInvoice(idEstudiante, idDocente, idAsignatura,
             usuario, fechaInicio, fechaFin);
     }
@@ -295,7 +314,8 @@ public class AsistenciaController {
             @PathVariable Long idPeriodo, @PathVariable Long idParalelo,
             @PathVariable Long idAsignatura, @PathVariable Long idCurso,
             @PathVariable Long docente, @PathVariable Long usuario,
-            @PathVariable Date fechaInicio, @PathVariable Date fechaFin) {
+            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") Date fechaInicio,
+            @PathVariable @DateTimeFormat(pattern = "yyyy-MM-dd") Date fechaFin) {
         return asistenciaService.exportInvoiceCurso(idMod, idPeriodo, idParalelo,
             idAsignatura, idCurso, docente, usuario, fechaInicio, fechaFin);
     }

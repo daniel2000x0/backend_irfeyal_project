@@ -1,7 +1,6 @@
 package com.irfeyal.asistencia.servicio;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
 import java.util.Date;
@@ -12,6 +11,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ContentDisposition;
@@ -19,7 +19,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.ResourceUtils;
 
 import com.irfeyal.asistencia.dao.IAsistenciaDao;
 import com.irfeyal.asistencia.dao.IClaseDao;
@@ -32,7 +31,7 @@ import com.irfeyal.matricula.modelo.Estudiante;
 import com.irfeyal.parametrizacionacademica.dao.AsignaturaRepository;
 import com.irfeyal.parametrizacionacademica.dao.CursoRepository;
 import com.irfeyal.parametrizacionacademica.dao.ModalidadRepository;
-import com.irfeyal.parametrizacionacademica.dao.ParaleloRespository;
+import com.irfeyal.parametrizacionacademica.dao.ParaleloRepository;
 import com.irfeyal.parametrizacionacademica.dao.PeriodoRepository;
 import com.irfeyal.parametrizacionacademica.modelo.Asignatura;
 import com.irfeyal.parametrizacionacademica.modelo.Curso;
@@ -80,7 +79,7 @@ public class AsistenciaServiceImpl implements IAsistenciaService {
   private IClaseDao claseDao;
 
   @Autowired
-  private ParaleloRespository paraleloRepository;
+  private ParaleloRepository paraleloRepository;
 
   @Autowired
   private PeriodoRepository periodoRepository;
@@ -223,24 +222,35 @@ public class AsistenciaServiceImpl implements IAsistenciaService {
           idEstudiante, idAsignatura, fechaInicio, fechaFin);
       Estudiante estudiante = this.estudianteDao.findestudianteidpdf(idEstudiante);
 
-      final File file = ResourceUtils.getFile("src/main/resources/PDF/reportesasistencias.jasper");
-      final File imgLogo = ResourceUtils.getFile("src/main/resources/logo.png");
-      final JasperReport report = (JasperReport) JRLoader.loadObject(file);
+      InputStream reportStream = new ClassPathResource("PDF/reportesasistencias.jasper").getInputStream();
+      InputStream logoStream = new ClassPathResource("logo.png").getInputStream();
+      final JasperReport report = (JasperReport) JRLoader.loadObject(reportStream);
 
       numFaltas = asistenciasDocente.size();
       numFaltasAdmin = asistenciasAdmin.size();
 
+      var empleadoOpt = empleadoDAO.findById(idDocente);
+      if (empleadoOpt.isEmpty() || estudiante == null || estudiante.getIdPersona() == null) {
+        throw new RuntimeException("Empleado o estudiante no encontrado");
+      }
+      var empleado = empleadoOpt.get();
+
       final Map<String, Object> parameters = new HashMap<>();
       parameters.put("id_estudiante", idEstudiante);
       parameters.put("tutor",
-          empleadoDAO.findById(idDocente).get().getPersona().getNombre() + "  "
-              + empleadoDAO.findById(idDocente).get().getPersona().getApellido());
+          empleado.getPersona().getNombre() + "  "
+              + empleado.getPersona().getApellido());
       parameters.put("persoNom", estudiante.getIdPersona().getNombre());
       parameters.put("persoApe", estudiante.getIdPersona().getApellido());
       parameters.put("cedula", estudiante.getIdPersona().getCedula());
 
       List<String> cargos = rolUsuarioDAO.validacionadmin(usuario);
       boolean esAdmin = false;
+
+      parameters.put("numfalta", numFaltas);
+      parameters.put("ds", new JRBeanCollectionDataSource(
+          (Collection<?>) this.claseDao.mostrarfechasidpdf(
+              idEstudiante, idDocente, idAsignatura, fechaInicio, fechaFin)));
 
       for (int i = 0; i < cargos.size(); i++) {
         if (cargos.get(i).equalsIgnoreCase("Administrador")) {
@@ -249,17 +259,11 @@ public class AsistenciaServiceImpl implements IAsistenciaService {
           parameters.put("ds", new JRBeanCollectionDataSource(
               (Collection<?>) this.claseDao.mostrarfechasidpdfadmin(
                   idEstudiante, idAsignatura, fechaInicio, fechaFin)));
-        } else {
-          if (i == cargos.size() - 1 && !esAdmin) {
-            parameters.put("numfalta", numFaltas);
-            parameters.put("ds", new JRBeanCollectionDataSource(
-                (Collection<?>) this.claseDao.mostrarfechasidpdf(
-                    idEstudiante, idDocente, idAsignatura, fechaInicio, fechaFin)));
-          }
+          break;
         }
       }
 
-      parameters.put("imgLogo", new FileInputStream(imgLogo));
+      parameters.put("imgLogo", logoStream);
 
       JasperPrint jPrint = JasperFillManager.fillReport(report, parameters, new JREmptyDataSource());
       byte[] reporte = JasperExportManager.exportReportToPdf(jPrint);
@@ -288,25 +292,43 @@ public class AsistenciaServiceImpl implements IAsistenciaService {
       Long idParalelo, Long idAsignatura, Long idCurso, Long docente, Long usuario,
       Date fechaInicio, Date fechaFin) {
     try {
-      final File file = ResourceUtils.getFile("src/main/resources/PDF/reportecursosasistencias.jasper");
-      final File imgLogo = ResourceUtils.getFile("src/main/resources/logo.png");
-      final JasperReport report = (JasperReport) JRLoader.loadObject(file);
+      InputStream reportStream = new ClassPathResource("PDF/reportecursosasistencias.jasper").getInputStream();
+      InputStream logoStream = new ClassPathResource("logo.png").getInputStream();
+      final JasperReport report = (JasperReport) JRLoader.loadObject(reportStream);
+
+      var periodo = periodoRepository.findById(idPeriodo)
+          .orElseThrow(() -> new RuntimeException("Periodo no encontrado: " + idPeriodo));
+      var curso = cursoRepository.findById(idCurso)
+          .orElseThrow(() -> new RuntimeException("Curso no encontrado: " + idCurso));
+      var paralelo = paraleloRepository.findById(idParalelo)
+          .orElseThrow(() -> new RuntimeException("Paralelo no encontrado: " + idParalelo));
+      var empleadoOpt = empleadoDAO.findById(docente);
+      if (empleadoOpt.isEmpty()) {
+        throw new RuntimeException("Empleado no encontrado: " + docente);
+      }
+      var empleado = empleadoOpt.get();
+      var modalidad = modalidadRepository.findById(idMod)
+          .orElseThrow(() -> new RuntimeException("Modalidad no encontrada: " + idMod));
+
+      String periodoDescripcion = periodo.getMalla().getDescripcion()
+          + " " + periodo.getAnoInicio()
+          + "-" + periodo.getAnoFin();
 
       final Map<String, Object> parameters = new HashMap<>();
-      String periodoDescripcion = periodoRepository.getById(idPeriodo).getMalla().getDescripcion()
-          + " " + periodoRepository.getById(idPeriodo).getAnoInicio()
-          + "-" + periodoRepository.getById(idPeriodo).getAnoFin();
-
-      parameters.put("desCurso", cursoRepository.getById(idCurso).getDescripcion());
-      parameters.put("desParalelo", paraleloRepository.getById(idParalelo).getDescripcion());
+      parameters.put("desCurso", curso.getDescripcion());
+      parameters.put("desParalelo", paralelo.getDescripcion());
       parameters.put("desPeriodo", periodoDescripcion);
       parameters.put("persoNom",
-          empleadoDAO.findById(docente).get().getPersona().getNombre() + "  "
-              + empleadoDAO.findById(docente).get().getPersona().getApellido());
-      parameters.put("desModalidad", modalidadRepository.getById(idMod).getDescripcion());
+          empleado.getPersona().getNombre() + "  "
+              + empleado.getPersona().getApellido());
+      parameters.put("desModalidad", modalidad.getDescripcion());
 
       List<String> cargos = rolUsuarioDAO.validacionadmin(usuario);
       boolean esAdminCurso = false;
+
+      parameters.put("ds", new JRBeanCollectionDataSource(
+          (Collection<?>) this.asistenciaDao.sistenciapdf(
+              idMod, idPeriodo, idParalelo, idCurso, docente, fechaInicio, fechaFin)));
 
       for (int i = 0; i < cargos.size(); i++) {
         if (cargos.get(i).equalsIgnoreCase("Administrador")) {
@@ -314,16 +336,11 @@ public class AsistenciaServiceImpl implements IAsistenciaService {
           parameters.put("ds", new JRBeanCollectionDataSource(
               (Collection<?>) this.asistenciaDao.sistenciapdftutor(
                   idMod, idPeriodo, idParalelo, idCurso, fechaInicio, fechaFin)));
-        } else {
-          if (i == cargos.size() - 1 && !esAdminCurso) {
-            parameters.put("ds", new JRBeanCollectionDataSource(
-                (Collection<?>) this.asistenciaDao.sistenciapdf(
-                    idMod, idPeriodo, idParalelo, idCurso, docente, fechaInicio, fechaFin)));
-          }
+          break;
         }
       }
 
-      parameters.put("imgLogo", new FileInputStream(imgLogo));
+      parameters.put("imgLogo", logoStream);
 
       JasperPrint jPrint = JasperFillManager.fillReport(report, parameters, new JREmptyDataSource());
       byte[] reporte = JasperExportManager.exportReportToPdf(jPrint);

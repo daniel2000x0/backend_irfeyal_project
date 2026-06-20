@@ -28,11 +28,12 @@ import com.irfeyal.matricula.interfaces.IEstudianteService;
 import com.irfeyal.matricula.modelo.Estudiante;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-@WebMvcTest(value = AsistenciaController.class, excludeAutoConfiguration = {
-    org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
-    org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class,
-    org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration.class
-})
+@WebMvcTest(value = AsistenciaController.class,
+    excludeAutoConfiguration = {
+        org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.security.servlet.SecurityFilterAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration.class
+    })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
 @AutoConfigureMockMvc(addFilters = false)
 class AsistenciaControllerTest {

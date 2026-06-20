@@ -50,10 +50,12 @@ public class Clase implements Serializable {
   @ManyToOne(optional = false)
   private Curso idCurso;
 
-  @OneToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "id_modalidad")
   private Modalidad idModalidad;
 
-  @OneToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "id_periodo")
   private Periodo idPeriodo;
 
   @JoinColumn(name = "id_paralelo", referencedColumnName = "id_paralelo", nullable = false)

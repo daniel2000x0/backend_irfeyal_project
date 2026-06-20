@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import com.irfeyal.parametrizacionacademica.modelo.Paralelo;
 
 @Repository
-public interface ParaleloRespository extends JpaRepository<Paralelo, Long> {
+public interface ParaleloRepository extends JpaRepository<Paralelo, Long> {
 
   @Query(value = "SELECT DISTINCT p.* FROM paralelo p "
       + "JOIN matricula m ON m.id_paralelo = p.id_paralelo "

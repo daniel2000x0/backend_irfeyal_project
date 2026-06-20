@@ -28,7 +28,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/auth")
-@CrossOrigin(origins = "*")
 @Tag(name = "Autenticación", description = "Login y generación de tokens JWT")
 public class AuthController {
 

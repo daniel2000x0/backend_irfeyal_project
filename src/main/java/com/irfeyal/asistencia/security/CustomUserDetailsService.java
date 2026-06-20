@@ -36,7 +36,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         List<String> roles = rolUsuarioDAO.validacionadmin(usuario.getIdUsuario());
         List<SimpleGrantedAuthority> authorities = roles.stream()
-            .map(SimpleGrantedAuthority::new)
+            .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
             .collect(Collectors.toList());
 
         return new User(

@@ -35,7 +35,7 @@ public class Asistencia implements Serializable {
   @JoinColumn(name = "id_clase", referencedColumnName = "id_clase")
   private Clase idClase;
 
-  @JsonIgnoreProperties({ "idEstudiante", "hibernateLazyInitializer", "handler" })
+  @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "id_estudiante", referencedColumnName = "id_estudiante")
   private Estudiante idEstudiante;
@@ -114,23 +114,28 @@ public class Asistencia implements Serializable {
   }
 
   public String getNombre() {
-    return this.idAsistencia != null ? this.idEstudiante.getIdPersona().getNombre() : "----";
+    if (this.idEstudiante == null || this.idEstudiante.getIdPersona() == null) return "----";
+    return this.idEstudiante.getIdPersona().getNombre();
   }
 
   public String getApellido() {
-    return this.idAsistencia != null ? this.idEstudiante.getIdPersona().getApellido() : "----";
+    if (this.idEstudiante == null || this.idEstudiante.getIdPersona() == null) return "----";
+    return this.idEstudiante.getIdPersona().getApellido();
   }
 
   public String getCedula() {
-    return this.idAsistencia != null ? this.idEstudiante.getIdPersona().getCedula() : "----";
+    if (this.idEstudiante == null || this.idEstudiante.getIdPersona() == null) return "----";
+    return this.idEstudiante.getIdPersona().getCedula();
   }
 
   public Date getFecClase() {
+    if (this.idClase == null) return null;
     return this.idClase.getFecClase();
   }
 
   public String getDescripciones() {
-    return this.idAsistencia != null ? this.idClase.getIdAsignatura().getDescripcion() : "----";
+    if (this.idClase == null || this.idClase.getIdAsignatura() == null) return "----";
+    return this.idClase.getIdAsignatura().getDescripcion();
   }
 
 }

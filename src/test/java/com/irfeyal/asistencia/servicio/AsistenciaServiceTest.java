@@ -28,7 +28,7 @@ import com.irfeyal.matricula.modelo.Estudiante;
 import com.irfeyal.parametrizacionacademica.dao.AsignaturaRepository;
 import com.irfeyal.parametrizacionacademica.dao.CursoRepository;
 import com.irfeyal.parametrizacionacademica.dao.ModalidadRepository;
-import com.irfeyal.parametrizacionacademica.dao.ParaleloRespository;
+import com.irfeyal.parametrizacionacademica.dao.ParaleloRepository;
 import com.irfeyal.parametrizacionacademica.dao.PeriodoRepository;
 import com.irfeyal.rolseguridad.dao.EmpleadoDAO;
 import com.irfeyal.rolseguridad.dao.PersonaDAO;
@@ -44,7 +44,7 @@ class AsistenciaServiceTest {
     @Mock private AsignaturaRepository asignaturaRepository;
     @Mock private CursoRepository cursoRepository;
     @Mock private ModalidadRepository modalidadRepository;
-    @Mock private ParaleloRespository paraleloRepository;
+    @Mock private ParaleloRepository paraleloRepository;
     @Mock private PeriodoRepository periodoRepository;
     @Mock private EmpleadoDAO empleadoDAO;
     @Mock private RolUsuarioDAO rolUsuarioDAO;

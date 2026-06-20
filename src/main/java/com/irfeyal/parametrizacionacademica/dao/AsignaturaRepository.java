@@ -13,9 +13,9 @@ public interface AsignaturaRepository extends JpaRepository<Asignatura, Long> {
 
   @Query(value = "SELECT DISTINCT a.* FROM asignatura a "
       + "JOIN asignatura_empleado ae ON ae.id_asignatura = a.id_asignatura "
-      + "JOIN empleado e ON e.id_empleado = ae.id_empleado "
-      + "JOIN periodo p ON p.id_periodo = ?2 "
-      + "WHERE ae.id_empleado = ?1 AND p.id_periodo = ?2",
+      + "JOIN matricula m ON m.id_empleado = ae.id_empleado "
+      + "WHERE ae.id_empleado = ?1 AND m.id_periodo = ?2 "
+      + "AND m.id_modalidad = ?3 AND m.id_curso = ?4 AND m.id_paralelo = ?5",
       nativeQuery = true)
   List<Asignatura> listarasignaturaasistencia(Long empleado, Long idPeriodo,
       Long idMod, Long idCurso, Long idParalelo);
